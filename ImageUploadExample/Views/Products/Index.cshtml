@@ -21,9 +21,9 @@
             <th></th>
         </tr>
     </thead>
-    <tbody>
+    <tbody id="productsTableBody">
 @foreach (var item in Model) {
-        <tr>
+        <tr id="product-row-@item.Id">
             <td>
                 @Html.DisplayFor(modelItem => item.Name)
             </td>
@@ -62,11 +62,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form id="deleteForm" asp-action="Delete" method="post" style="display: inline;">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" id="deleteProductId" name="id" value="" />
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
+                <button type="button" class="btn btn-danger" onclick="deleteProduct()">Delete</button>
             </div>
         </div>
     </div>
@@ -74,13 +70,56 @@
 
 @section Scripts {
     <script>
+        let currentDeleteId = null;
+        let deleteModalInstance = null;
+
         function showDeleteModal(id, name, imageUrl) {
-            document.getElementById('deleteProductId').value = id;
+            currentDeleteId = id;
             document.getElementById('deleteProductName').textContent = name;
             document.getElementById('deleteProductImage').src = imageUrl;
             
-            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
+            deleteModalInstance = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModalInstance.show();
+        }
+
+        function deleteProduct() {
+            if (!currentDeleteId) return;
+
+            // Get the anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            // Send AJAX request to delete the product
+            fetch('@Url.Action("Delete", "Products")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: `id=${currentDeleteId}&__RequestVerificationToken=${encodeURIComponent(token)}`
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Remove the row from the table
+                    const row = document.getElementById(`product-row-${currentDeleteId}`);
+                    if (row) {
+                        row.remove();
+                    }
+                    
+                    // Close the modal
+                    if (deleteModalInstance) {
+                        deleteModalInstance.hide();
+                    }
+                    
+                    currentDeleteId = null;
+                } else {
+                    alert('Failed to delete the product. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the product.');
+            });
         }
     </script>
+    @Html.AntiForgeryToken()
 }
