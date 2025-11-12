@@ -179,28 +179,10 @@ public class ProductsController : Controller
         return View(viewModel);
     }
 
-    // GET: Products/Delete/5
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        var product = await _context.Product
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (product == null)
-        {
-            return NotFound();
-        }
-
-        return View(product);
-    }
-
     // POST: Products/Delete/5
-    [HttpPost, ActionName("Delete")]
+    [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
+    public async Task<IActionResult> Delete(int id)
     {
         var product = await _context.Product.FindAsync(id);
         if (product != null)
