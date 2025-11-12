@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ImageUploadExample.Data;
 using ImageUploadExample.Models;
+using ImageUploadExample.ViewModels;
 
 namespace ImageUploadExample.Controllers;
 
@@ -54,11 +55,28 @@ public class ProductsController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Name,ImageUrl")] Product product)
+    public async Task<IActionResult> Create(ProductCreateViewModel product)
     {
         if (ModelState.IsValid)
         {
-            _context.Add(product);
+            // Add product to database
+            string uniqueProductName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(product.ProductImage.FileName);
+            // Ensure the images directory exists
+            var imagesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+            Directory.CreateDirectory(imagesDirectory);
+            // Save the image to wwwroot/images
+            var filePath = Path.Combine(imagesDirectory, uniqueProductName);
+            using (var stream = System.IO.File.Create(filePath))
+            {
+                await product.ProductImage.CopyToAsync(stream);
+            }
+
+            Product p = new()
+            {
+                Name = product.Name,
+                ImageUrl = uniqueProductName
+            };
+            _context.Product.Add(p);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
