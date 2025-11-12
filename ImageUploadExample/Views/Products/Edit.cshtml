@@ -1,4 +1,4 @@
-﻿@model ImageUploadExample.Models.Product
+﻿@model ImageUploadExample.ViewModels.ProductEditViewModel
 
 @{
     ViewData["Title"] = "Edit";
@@ -10,19 +10,31 @@
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Edit">
+        <form asp-action="Edit" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="CurrentImageUrl" />
+            
             <div class="form-group">
                 <label asp-for="Name" class="control-label"></label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
+            
             <div class="form-group">
-                <label asp-for="ImageUrl" class="control-label"></label>
-                <input asp-for="ImageUrl" class="form-control" />
-                <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                <label class="control-label">Current Image</label>
+                <div>
+                    <img src="/images/@Model.CurrentImageUrl" alt="Current product image" style="max-height: 200px;" />
+                </div>
             </div>
+            
+            <div class="form-group">
+                <label asp-for="ProductImage" class="control-label">New Image (optional)</label>
+                <input asp-for="ProductImage" class="form-control" type="file" accept="image/*" />
+                <span asp-validation-for="ProductImage" class="text-danger"></span>
+                <small class="form-text text-muted">Leave empty to keep the current image</small>
+            </div>
+            
             <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-primary" />
             </div>

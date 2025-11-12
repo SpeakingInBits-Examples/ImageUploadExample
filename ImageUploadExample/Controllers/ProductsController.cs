@@ -96,7 +96,15 @@ public class ProductsController : Controller
         {
             return NotFound();
         }
-        return View(product);
+
+        var viewModel = new ProductEditViewModel
+        {
+            Id = product.Id,
+            Name = product.Name,
+            CurrentImageUrl = product.ImageUrl
+        };
+
+        return View(viewModel);
     }
 
     // POST: Products/Edit/5
@@ -104,9 +112,9 @@ public class ProductsController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,Name,ImageUrl")] Product product)
+    public async Task<IActionResult> Edit(int id, ProductEditViewModel viewModel)
     {
-        if (id != product.Id)
+        if (id != viewModel.Id)
         {
             return NotFound();
         }
@@ -115,12 +123,46 @@ public class ProductsController : Controller
         {
             try
             {
+                var product = await _context.Product.FindAsync(id);
+                if (product == null)
+                {
+                    return NotFound();
+                }
+
+                // Update the name
+                product.Name = viewModel.Name;
+
+                // Check if a new image was uploaded
+                if (viewModel.ProductImage != null)
+                {
+                    // Delete the old image file if it exists
+                    var oldImagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", product.ImageUrl);
+                    if (System.IO.File.Exists(oldImagePath))
+                    {
+                        System.IO.File.Delete(oldImagePath);
+                    }
+
+                    // Save the new image
+                    string uniqueProductName = Guid.NewGuid().ToString() + Path.GetExtension(viewModel.ProductImage.FileName);
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", uniqueProductName);
+                    Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+
+                    using (var stream = System.IO.File.Create(filePath))
+                    {
+                        await viewModel.ProductImage.CopyToAsync(stream);
+                    }
+
+                    // Update the image URL
+                    product.ImageUrl = uniqueProductName;
+                }
+                // If no new image is uploaded, keep the existing ImageUrl
+
                 _context.Update(product);
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ProductExists(product.Id))
+                if (!ProductExists(viewModel.Id))
                 {
                     return NotFound();
                 }
@@ -131,7 +173,10 @@ public class ProductsController : Controller
             }
             return RedirectToAction(nameof(Index));
         }
-        return View(product);
+        
+        // If model state is invalid, preserve the current image URL for display
+        viewModel.CurrentImageUrl = (await _context.Product.FindAsync(id))?.ImageUrl ?? viewModel.CurrentImageUrl;
+        return View(viewModel);
     }
 
     // GET: Products/Delete/5
