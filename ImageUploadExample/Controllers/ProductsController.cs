@@ -205,6 +205,13 @@ public class ProductsController : Controller
         var product = await _context.Product.FindAsync(id);
         if (product != null)
         {
+            // Delete the image file from the file system
+            var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", product.ImageUrl);
+            if (System.IO.File.Exists(imagePath))
+            {
+                System.IO.File.Delete(imagePath);
+            }
+
             _context.Product.Remove(product);
         }
 
