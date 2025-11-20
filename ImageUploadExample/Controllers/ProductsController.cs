@@ -14,10 +14,12 @@ namespace ImageUploadExample.Controllers;
 public class ProductsController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly ImageService _imageService;
 
     public ProductsController(ApplicationDbContext context)
     {
         _context = context;
+        _imageService = new ImageService();
     }
 
     // GET: Products
@@ -59,17 +61,8 @@ public class ProductsController : Controller
     {
         if (ModelState.IsValid)
         {
-            // Add product to database
-            string uniqueProductName = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(product.ProductImage.FileName);
-            // Ensure the images directory exists
-            var imagesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-            Directory.CreateDirectory(imagesDirectory);
-            // Save the image to wwwroot/images
-            var filePath = Path.Combine(imagesDirectory, uniqueProductName);
-            using (var stream = System.IO.File.Create(filePath))
-            {
-                await product.ProductImage.CopyToAsync(stream);
-            }
+            // Save image using ImageService
+            var uniqueProductName = await _imageService.SaveImageAsync(product.ProductImage);
 
             Product p = new()
             {
@@ -135,25 +128,8 @@ public class ProductsController : Controller
                 // Check if a new image was uploaded
                 if (viewModel.ProductImage != null)
                 {
-                    // Delete the old image file if it exists
-                    var oldImagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", product.ImageUrl);
-                    if (System.IO.File.Exists(oldImagePath))
-                    {
-                        System.IO.File.Delete(oldImagePath);
-                    }
-
-                    // Save the new image
-                    string uniqueProductName = Guid.NewGuid().ToString() + Path.GetExtension(viewModel.ProductImage.FileName);
-                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", uniqueProductName);
-                    Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-
-                    using (var stream = System.IO.File.Create(filePath))
-                    {
-                        await viewModel.ProductImage.CopyToAsync(stream);
-                    }
-
-                    // Update the image URL
-                    product.ImageUrl = uniqueProductName;
+                    // Replace image using ImageService
+                    product.ImageUrl = await _imageService.ReplaceImageAsync(product.ImageUrl, viewModel.ProductImage);
                 }
                 // If no new image is uploaded, keep the existing ImageUrl
 
@@ -188,11 +164,7 @@ public class ProductsController : Controller
         if (product != null)
         {
             // Delete the image file from the file system
-            var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", product.ImageUrl);
-            if (System.IO.File.Exists(imagePath))
-            {
-                System.IO.File.Delete(imagePath);
-            }
+            _imageService.DeleteImage(product.ImageUrl);
 
             _context.Product.Remove(product);
         }
