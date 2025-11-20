@@ -62,7 +62,7 @@ public class ProductsController : Controller
         if (ModelState.IsValid)
         {
             // Save image using ImageService
-            var uniqueProductName = await _imageService.SaveImageAsync(product.ProductImage);
+            var uniqueProductName = await _imageService.SaveImageAsync(product.ProductImage, 200, 200);
 
             Product p = new()
             {
@@ -128,8 +128,8 @@ public class ProductsController : Controller
                 // Check if a new image was uploaded
                 if (viewModel.ProductImage != null)
                 {
-                    // Replace image using ImageService
-                    product.ImageUrl = await _imageService.ReplaceImageAsync(product.ImageUrl, viewModel.ProductImage);
+                    _imageService.DeleteImage(product.ImageUrl);
+                    product.ImageUrl = await _imageService.SaveImageAsync(viewModel.ProductImage, 200, 200);
                 }
                 // If no new image is uploaded, keep the existing ImageUrl
 
